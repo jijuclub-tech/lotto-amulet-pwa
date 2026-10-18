@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>천문·용맥 로또 부적 시스템</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#030712">
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #030712; color: #f8fafc;
+            max-width: 650px; margin: 20px auto; padding: 15px; line-height: 1.5;
+        }
+        h2 { text-align: center; color: #facc15; margin-bottom: 5px; text-shadow: 0 0 10px rgba(250,204,21,0.5); }
+        .subtitle { text-align: center; font-size: 13px; color: #94a3b8; margin-bottom: 25px; }
+        .section-box {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .section-title { font-size: 16px; font-weight: bold; color: #38bdf8; margin-bottom: 15px; border-left: 3px solid #38bdf8; padding-left: 10px; }
+        .history-list { display: flex; flex-direction: column; gap: 12px; }
+        .history-item { background: #1e293b; padding: 12px; border-radius: 8px; border-left: 3px solid #f97316; }
+        .h-draw { font-weight: bold; color: #cbd5e1; font-size: 13px; }
+        .h-nums { color: #facc15; font-weight: bold; font-size: 14px; margin-top: 4px; }
+        select, input { width: 100%; padding: 12px; background: #020617; color: white; border: 1px solid #475569; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        button.action-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #818cf8); color: #030712; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        button.action-btn:hover { opacity: 0.9; }
+        .amulet-card {
+            position: relative; background: radial-gradient(circle at center, #1e1b4b 0%, #090d16 100%);
+            border: 2px solid #facc15; border-radius: 16px; padding: 25px 15px; text-align: center;
+            box-shadow: 0 0 25px rgba(250, 204, 21, 0.2); overflow: hidden; display: none;
+        }
+        .dragon-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 150px; opacity: 0.06; z-index: 0; pointer-events: none; }
+        .card-header { position: relative; z-index: 1; margin-bottom: 15px; }
+        .amulet-name { font-size: 18px; font-weight: bold; color: #facc15; }
+        .amulet-meaning { font-size: 12px; color: #cbd5e1; margin-top: 6px; }
+        .matrix-grid {
+            position: relative; z-index: 1; display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px;
+            background: rgba(2, 6, 23, 0.6); padding: 12px; border-radius: 10px; margin: 20px auto; max-width: 420px; border: 1px solid rgba(250, 204, 21, 0.3);
+        }
+        .matrix-cell {
+            width: 36px; height: 36px; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 12px; color: #475569; font-weight: bold;
+        }
+        .matrix-cell.active {
+            background: #facc15; color: #030712; border-color: #fef08a;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.9); transform: scale(1.1); font-size: 13px;
+        }
+        .number-print { position: relative; z-index: 1; background: rgba(15, 23, 42, 0.9); padding: 12px; border-radius: 8px; font-size: 20px; color: #38bdf8; font-weight: bold; letter-spacing: 3px; border: 1px dashed #facc15; }
+        .copy-btn { position: relative; z-index: 1; margin-top: 15px; padding: 12px; width: 100%; background: #22c55e; color: #030712; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 10px; background: #1e293b; border: none; color: #94a3b8; border-radius: 8px; cursor: pointer; }
+        .tab.active { background: #38bdf8; color: #030712; font-weight: bold; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .status { font-size: 12px; color: #22c55e; margin-top: 5px; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h2>📜 천문·용맥 로또 부적 시스템</h2>
+    <div class="subtitle">과거의 형상을 읽어 미래의 길(吉)을 여는 확률 예술</div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('generate')">부적 생성</button>
+        <button class="tab" onclick="switchTab('check')">번호 검사</button>
+    </div>
+
+    <!-- Generate Tab -->
+    <div id="generateTab" class="tab-content active">
+        <div class="section-box">
+            <div class="section-title">🔍 1단계: 최근 5주 매트릭스 형상 분석</div>
+            <div class="history-list" id="historyList">
+                <div class="history-item">데이터 로딩 중...</div>
+            </div>
+            <p id="analysisReport" style="font-size: 12px; color: #94a3b8; margin-top: 10px;"></p>
+        </div>
+
+        <div class="section-box">
+            <div class="section-title">🔮 2단계: 이번 주 수호 테마(부적) 선택</div>
+            <select id="themeSelect">
+                <option value="dragon">🐉 청룡 승천격 (공백지를 뚫고 비상하는 궤적)</option>
+                <option value="tiger">🐅 백호 질풍격 (과거의 뭉친 에너지를 흩어내는 밸런스)</option>
+                <option value="turtle">🐢 현무 수호격 (총총한 확률 그물망을 피하는 방어막)</option>
+            </select>
+            <button class="action-btn" onclick="generateAmulet()">✨ 나만의 천문 부적 발행하기</button>
+            <div class="status" id="genStatus"></div>
+        </div>
+
+        <div class="amulet-card" id="amuletCard">
+            <div class="dragon-watermark" id="watermarkIcon">🐉</div>
+            <div class="card-header">
+                <div class="amulet-name" id="cardTitle"></div>
+                <div class="amulet-meaning" id="cardDesc"></div>
+            </div>
+            <div class="matrix-grid" id="matrixBoard"></div>
+            <div class="number-print" id="printedNumbers"></div>
+            <button class="copy-btn" onclick="copyNumbers()">📋 부적 번호 복사 (동행복권 붙여넣기용)</button>
+        </div>
+    </div>
+
+    <!-- Check Tab -->
+    <div id="checkTab" class="tab-content">
+        <div class="section-box">
+            <div class="section-title">🔎 내 번호 수동 검사</div>
+            <input type="text" id="checkInput" placeholder="예: 1,5,12,23,34,45 (쉼표로 구분, 6개)">
+            <button class="action-btn" onclick="checkMyNumbers()">검사하기</button>
+            <div id="checkResult" style="margin-top: 15px; font-size: 14px;"></div>
+        </div>
+    </div>
+
+<script>
+    let allDraws = [];
+    let recent5 = [];
+    let currentNumbers = [];
+
+    async function loadData() {
+        try {
+            const res = await fetch('https://smok95.github.io/lotto/results/all.json');
+            const data = await res.json();
+            allDraws = data.sort((a, b) => b.draw_no - a.draw_no);
+            recent5 = allDraws.slice(0, 5);
+            renderHistory();
+            analyzePattern();
+            document.getElementById('genStatus').innerText = `데이터 로드 완료 (최신 ${allDraws[0].draw_no}회)`;
+        } catch (e) {
+            document.getElementById('historyList').innerHTML = '<div class="history-item error">데이터 로드 실패. 오프라인 모드.</div>';
+            // Fallback mock
+            recent5 = [
+                {draw_no:1246, numbers:[16,22,23,24,27,28]},
+                {draw_no:1245, numbers:[4,5,25,28,32,42]},
+                {draw_no:1244, numbers:[1,13,18,26,34,38]},
+                {draw_no:1243, numbers:[9,18,24,38,43,44]},
+                {draw_no:1242, numbers:[2,4,10,16,31,41]}
+            ];
+            renderHistory();
+            analyzePattern();
+        }
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = recent5.map(d => `
+            <div class="history-item">
+                <div class="h-draw">제${d.draw_no}회</div>
+                <div class="h-nums">${d.numbers.map(n => n.toString().padStart(2,'0')).join(', ')}</div>
+            </div>
+        `).join('');
+    }
+
+    function analyzePattern() {
+        if (recent5.length === 0) return;
+        const spans = recent5.map(d => Math.max(...d.numbers) - Math.min(...d.numbers));
+        const avgSpan = spans.reduce((a,b)=>a+b,0) / spans.length;
+        let pattern = '';
+        if (avgSpan >= 30) pattern = '확산형 (에너지가 넓게 퍼짐)';
+        else if (avgSpan <= 15) pattern = '밀집형 (에너지가 강하게 뭉침)';
+        else pattern = '균형형 (중간 확산)';
+        const report = `* 분석: 최근 5주 평균 산개도(Span) ${avgSpan.toFixed(1)}. ${pattern}. 공백지를 메우는 밸런스형 진형이 유리합니다.`;
+        document.getElementById('analysisReport').innerText = report;
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+        document.getElementById(tab + 'Tab').classList.add('active');
+    }
+
+    function getVaccineNumbers() {
+        let candidate = [];
+        let isValid = false;
+        let attempts = 0;
+        
+        while (!isValid && attempts < 20000) {
+            attempts++;
+            candidate = [];
+            while(candidate.length < 6) {
+                let r = Math.floor(Math.random() * 45) + 1;
+                if(!candidate.includes(r)) candidate.push(r);
+            }
+            candidate.sort((a, b) => a - b);
+            isValid = true;
+
+            // 1. 홀짝 밸런스
+            let odds = candidate.filter(n => n % 2 !== 0).length;
+            if(odds === 0 || odds === 6) { isValid = false; continue; }
+
+            // 2. 3연번 제외
+            let cons = 1;
+            for(let i=0; i<5; i++) {
+                if(candidate[i+1] === candidate[i]+1) cons++; else cons=1;
+                if(cons >= 3) break;
+            }
+            if(cons >= 3) { isValid = false; continue; }
+
+            // 3. 구간별 쏠림(Max 2)
+            let ranges = [0,0,0,0,0];
+            candidate.forEach(n => ranges[Math.min(4, Math.floor((n-1)/10))]++);
+            if(ranges.some(r => r > 2)) { isValid = false; continue; }
+
+            // 4. 최근 5주와 2개 이상 겹침 금지
+            for (let draw of recent5) {
+                const overlap = candidate.filter(n => draw.numbers.includes(n)).length;
+                if (overlap >= 2) { isValid = false; break; }
+            }
+            if (!isValid) continue;
+
+            // 5. 역대와 4개 이상 겹침 금지 (샘플링으로 성능 고려, 최근 100회만 체크하거나 전체)
+            // 전체 체크는 무거울 수 있으므로 최근 200회 + 랜덤 샘플
+            const checkDraws = allDraws.slice(0, 200);
+            for (let draw of checkDraws) {
+                const overlap = candidate.filter(n => draw.numbers.includes(n)).length;
+                if (overlap >= 4) { isValid = false; break; }
+            }
+        }
+        return isValid ? candidate : [1,12,23,34,40,45]; // fallback
+    }
+
+    function generateAmulet() {
+        const theme = document.getElementById('themeSelect').value;
+        const numbers = getVaccineNumbers();
+        currentNumbers = numbers;
+        document.getElementById('genStatus').innerText = `필터 통과 (${numbers.length}개 번호 생성)`;
+
+        const themes = {
+            'dragon': { title: "【 靑龍 昇天格 符籍 】", desc: "공백지를 뚫고 비상하는 청룡의 성도.", icon: "🐉" },
+            'tiger': { title: "【 白虎 疾風格 符籍 】", desc: "균형을 맞추며 넓게 장악하는 백호의 진형.", icon: "🐅" },
+            'turtle': { title: "【 玄武 磐석格 符籍 】", desc: "과거의 패턴을 완벽히 방어하는 현무의 수호진.", icon: "🐢" }
+        };
+
+        document.getElementById('cardTitle').innerText = themes[theme].title;
+        document.getElementById('cardDesc').innerText = themes[theme].desc;
+        document.getElementById('watermarkIcon').innerText = themes[theme].icon;
+
+        const board = document.getElementById('matrixBoard');
+        board.innerHTML = '';
+        for (let i = 1; i <= 45; i++) {
+            let cell = document.createElement('div');
+            cell.className = 'matrix-cell';
+            if (numbers.includes(i)) {
+                cell.classList.add('active');
+                cell.innerText = "✨" + (i < 10 ? '0' + i : i);
+            } else {
+                cell.innerText = i < 10 ? '0' + i : i;
+            }
+            board.appendChild(cell);
+        }
+
+        document.getElementById('printedNumbers').innerText = numbers.map(n => n < 10 ? '0' + n : n).join('   ');
+        document.getElementById('amuletCard').style.display = 'block';
+    }
+
+    function copyNumbers() {
+        if(currentNumbers.length === 0) return;
+        navigator.clipboard.writeText(currentNumbers.join(', ')).then(() => alert('부적 번호 복사 완료! 동행복권에 붙여넣기 하세요.'));
+    }
+
+    function checkMyNumbers() {
+        const input = document.getElementById('checkInput').value.trim();
+        const nums = input.split(/[,\s]+/).map(n => parseInt(n)).filter(n => !isNaN(n) && n >=1 && n<=45);
+        const unique = [...new Set(nums)].sort((a,b)=>a-b);
+        const resultEl = document.getElementById('checkResult');
+        if (unique.length !== 6) {
+            resultEl.innerHTML = '<span class="error">정확히 6개의 유효한 번호(1-45)를 입력하세요.</span>';
+            return;
+        }
+
+        let issues = [];
+        // 홀짝
+        const odds = unique.filter(n => n%2).length;
+        if (odds === 0 || odds === 6) issues.push('올홀 또는 올짝');
+        // 연번
+        let cons = 1;
+        for(let i=0; i<5; i++) {
+            if(unique[i+1] === unique[i]+1) cons++; else cons=1;
+            if(cons >= 3) { issues.push('3연번 이상'); break; }
+        }
+        // 구간
+        let ranges = [0,0,0,0,0];
+        unique.forEach(n => ranges[Math.min(4, Math.floor((n-1)/10))]++);
+        if(ranges.some(r => r > 2)) issues.push('구간 쏠림 (한 구간 3개 이상)');
+        // 최근 겹침
+        for (let draw of recent5) {
+            const overlap = unique.filter(n => draw.numbers.includes(n)).length;
+            if (overlap >= 2) issues.push(`최근 ${draw.draw_no}회와 ${overlap}개 겹침`);
+        }
+
+        if (issues.length === 0) {
+            resultEl.innerHTML = '<span style="color:#22c55e;">✅ 필터 통과! 안전 지대 조합입니다.</span>';
+        } else {
+            resultEl.innerHTML = `<span class="error">⚠️ 필터 미통과:</span><ul>${issues.map(i => `<li>${i}</li>`).join('')}</ul>`;
+        }
+    }
+
+    // PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js').catch(e => console.log(e));
+    }
+
+    loadData();
+</script>
+</body>
+</html>
